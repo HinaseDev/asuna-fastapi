@@ -1,15 +1,16 @@
 import json
-import pathlib
 import random
 import typing
 from contextlib import asynccontextmanager
-
+import asyncio
 import asqlite
 import uvicorn
 from fastapi import FastAPI, Depends
 from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
 from werkzeug.utils import secure_filename
 import os
+from globs import images_directory
+from helper import *
 
 get_conn = asqlite.Connection
 
@@ -23,21 +24,12 @@ app = FastAPI()
 # do lifespan=lifespan when ready.
 
 
-def get_particular_data(table):
-    async def wrapper(conn=Depends(get_conn)):
-        async with conn.cursor() as cursor:
-            result = await cursor.execute(f"SELECT * FROM {table}")
-            return [x[0] for x in await result.fetchall()]
-
-    return wrapper
 
 
 # modify this table value
 # data: typehint = Depends(get_particular_data("objection")
 
 
-current_directory = pathlib.Path(__file__).parent.resolve()
-images_directory = current_directory / "images"
 
 # possible better spot for it may exist.
 # possibly write usage.json to a database instead for speed reasons.
@@ -153,6 +145,9 @@ async def get_random_image_info(image_type: str):
     # an online accquitance decided to make this ai version for some reason
     # https://mystb.in/a56e9985c52d7bb3e1?lines=F1-L60
 
+cached_endpoints = GetSet({})
+cached_total_images = GetSet(0)
+asyncio.run(generate_cache(cached_endpoints, cached_total_images)) # We need to generate the cache on startup. 
 
 @app.get("/api")
 async def get_endpoints():
@@ -160,15 +155,10 @@ async def get_endpoints():
     total_images = 0
 
     # Iterate over directories inside 'images'
-    for image_type_dir in images_directory.iterdir():
-        if image_type_dir.is_dir():
-            images = [img for img in image_type_dir.iterdir() if img.is_file()]
-            image_count = len(images)
-            endpoints[image_type_dir.name] = {"url": f"/api/{image_type_dir.name}", "imageCount": image_count}
-            total_images += image_count
+    
 
     return JSONResponse(
-        {"allEndpoints": list(endpoints.keys()), "endpointInfo": endpoints, "totalImages": total_images}
+        {"allEndpoints": list(cached_endpoints.get().keys()), "endpointInfo": cached_endpoints.get(), "totalImages": cached_total_images.get()}
     )
 
 
