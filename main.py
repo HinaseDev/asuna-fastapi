@@ -147,15 +147,12 @@ async def get_random_image_info(image_type: str):
 
 cached_endpoints = GetSet({})
 cached_total_images = GetSet(0)
-asyncio.run(generate_cache(cached_endpoints, cached_total_images)) # We need to generate the cache on startup. 
+generate_cache(cached_endpoints, cached_total_images) # We need to generate the cache on startup. 
 
 @app.get("/api")
 async def get_endpoints():
-    endpoints = {}
-    total_images = 0
-
-    # Iterate over directories inside 'images'
-    
+    # Begin rebuilding the cache in the background
+    asyncio.create_task(generate_cache_async(cached_endpoints, cached_total_images))
 
     return JSONResponse(
         {"allEndpoints": list(cached_endpoints.get().keys()), "endpointInfo": cached_endpoints.get(), "totalImages": cached_total_images.get()}

@@ -1,0 +1,10 @@
+DEBUG:log:Logger created
+DEBUG:log:Generating cache
+DEBUG:log:Cache generated! Total images: 519
+DEBUG:asyncio:Using selector: EpollSelector
+DEBUG:log:Generating cache
+DEBUG:log:Cache generated! Total images: 519
+DEBUG:log:Generating cache
+DEBUG:log:Cache generated! Total images: 519
+DEBUG:log:Generating cache
+DEBUG:log:Cache generated! Total images: 519

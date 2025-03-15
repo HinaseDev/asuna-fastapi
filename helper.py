@@ -1,7 +1,8 @@
 from fastapi import Depends
 from asqlite import Connection as get_conn
 from globs import images_directory
-
+import asyncio
+from log import logger
 class GetSet:
     """
     Simple descriptor class to allow for get/set functionality.
@@ -35,8 +36,9 @@ class GetSet:
     def set(self, value):
         self.attrval = value
 
-async def generate_cache(ep_cache: GetSet, ti_cache: GetSet):
+def generate_cache(ep_cache: GetSet, ti_cache: GetSet):
     endpoints = {}
+    logger.debug("Generating cache")
     total_images = 0
 
     # Iterate over directories inside 'images'
@@ -48,7 +50,10 @@ async def generate_cache(ep_cache: GetSet, ti_cache: GetSet):
             total_images += image_count
     ep_cache.set(endpoints)
     ti_cache.set(total_images)
+    logger.debug("Cache generated! Total images: %d", total_images)
 
+async def generate_cache_async(ep_cache: GetSet, ti_cache: GetSet):
+    await asyncio.to_thread(lambda: generate_cache(ep_cache, ti_cache))
 
 def get_particular_data(table):
     async def wrapper(conn=Depends(get_conn)):
