@@ -74,7 +74,7 @@ async def get_random_image(image_type: str):
         # TODO: make sure it checks the amount of items in images (we want it to not be None)
     else:
         for image in image_path.iterdir():
-            images.append(image)
+            images.append(image.name)
     
     # add to usage like f"{image_type-api}" or just image_type.
     # i.e. example neko-api
