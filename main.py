@@ -73,7 +73,7 @@ async def get_random_image(image_type: str):
         # TODO: ADD status code that makes sense.
         # TODO: make sure it checks the amount of items in images (we want it to not be None)
     else:
-        for image in image_path.listdir():
+        for image in image_path.iterdir():
             images.append(image)
     
     # add to usage like f"{image_type-api}" or just image_type.
