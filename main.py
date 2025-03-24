@@ -8,7 +8,6 @@ import uvicorn
 from fastapi import FastAPI, Depends
 from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
 from werkzeug.utils import secure_filename
-import os
 from globs import images_directory
 from helper import *
 
@@ -66,15 +65,15 @@ async def get_random_image(image_type: str):
     # image_path = images_directory / image_type
     # Secure Path so we don't have to worry about path traversal
     image_path = images_directory / secure_filename(image_type)
-    
+
     print(image_path)
 
-    if not os.path.exists(image_path):
+    if not image_path.exists():
         return JSONResponse({"error": "Picture category not found or there are no images in this category"})
         # TODO: ADD status code that makes sense.
         # TODO: make sure it checks the amount of items in images (we want it to not be None)
     else:
-        for image in os.listdir(image_path):
+        for image in image_path.listdir():
             images.append(image)
     
     # add to usage like f"{image_type-api}" or just image_type.
