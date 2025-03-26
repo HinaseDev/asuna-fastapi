@@ -9,7 +9,7 @@ from fastapi import FastAPI, Depends
 from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
 from werkzeug.utils import secure_filename
 import os
-from globs import images_directory
+from globs import images_directory, USAGE_PATH
 from helper import *
 
 get_conn = asqlite.Connection
@@ -35,7 +35,7 @@ app = FastAPI()
 # possibly write usage.json to a database instead for speed reasons.
 
 
-with open("example_usage.json", "r") as f:
+with open(USAGE_PATH, "r") as f:
     usage_data = json.load(f)
 
 
@@ -70,7 +70,7 @@ async def get_random_image(image_type: str):
     print(image_path)
 
     if not os.path.exists(image_path):
-        return JSONResponse({"error": "Picture category not found or there are no images in this category"})
+        return JSONResponse({"error": "Picture category not found or there are no images in this category"}) # TODO this should be a 404
         # TODO: ADD status code that makes sense.
         # TODO: make sure it checks the amount of items in images (we want it to not be None)
     else:

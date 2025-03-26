@@ -3,3 +3,4 @@ python-dotenv
 uvicorn
 git+https://github.com/Rapptz/asqlite
 werkzeug
+pytest
