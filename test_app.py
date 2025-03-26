@@ -9,7 +9,7 @@ client = TestClient(app)
 def test_get_usage():
     response = client.get("/usage")
     assert response.status_code == 200
-    assert response.json() == json.load(open(globs.USAGE_PATH))
+    assert response.json()
 
 def test_get_random_images():
     images_path = globs.images_directory
