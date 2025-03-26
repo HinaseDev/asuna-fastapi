@@ -3,21 +3,33 @@ import random
 import typing
 from contextlib import asynccontextmanager
 import asyncio
-import asqlite
 import uvicorn
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI
 from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
 from werkzeug.utils import secure_filename
 import os
 from globs import images_directory, USAGE_PATH
 from helper import *
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
+from os import path
+from sqlalchemy.ext.declarative import declarative_base
+import datetime
+from sqlalchemy.orm import sessionmaker
+from db import Usage, base
 
-get_conn = asqlite.Connection
+engine = create_engine("sqlite:///usage.db", echo=True)
+Session = sessionmaker(bind=engine)
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    async with asqlite.create_pool("usage.db") as app.pool:
-        yield
+if not os.path.exists("usage.db"):
+    base.metadata.create_all(engine)
+    session = Session()
+    for usage_ident in images_directory.iterdir():
+        if usage_ident.is_dir():
+            session.add(Usage(usage_ident=usage_ident.name, traffic=0, last_int=datetime.datetime.now()))
+    session.commit()
+    logger.debug("Database created and populated with initial data")
+
 
 
 app = FastAPI()
@@ -47,8 +59,12 @@ async def welcome():
 
 @app.get("/usage")
 async def get_usage():
-
+    session = Session()
     # load example_usage.json for rn
+    usage = session.query(Usage).all()
+    usage_data = {}
+    for item in usage:
+        usage_data[item.usage_ident] = {"traffic": item.traffic, "last_request": item.last_int.isoformat()}
     return JSONResponse(usage_data)
     # use some lifetime object example jdjgapi to in this case grab the usage data
 
@@ -88,6 +104,13 @@ async def get_random_image(image_type: str):
     # https://mystb.in/a56e9985c52d7bb3e1?lines=F1-L28
 
     random_image = random.choice(images)
+
+    # Update Usage
+    session = Session()
+    usage = session.query(Usage).filter_by(usage_ident=image_type).first()
+    usage.traffic += 1
+    usage.last_int = datetime.datetime.now()
+    session.commit()
 
     # use fileResponse with the path to show this.
     return JSONResponse({"fileName": random_image, "url": f"/images/{image_type}/image/{random_image}"})
@@ -137,6 +160,13 @@ async def get_random_image_info(image_type: str):
 
     # add to usage like f"{image_type-api}" or just image_type.
     # i.e. example neko-api
+
+    # Update Usage
+    session = Session()
+    usage = session.query(Usage).filter_by(usage_ident=image_type).first()
+    usage.traffic += 1
+    usage.last_int = datetime.datetime.now()
+    session.commit()
 
     random_image = random.choice(images)
 

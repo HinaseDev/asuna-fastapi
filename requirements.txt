@@ -4,4 +4,4 @@ uvicorn
 git+https://github.com/Rapptz/asqlite
 werkzeug
 pytest
-httpx
+httpxsqlalchemy
