@@ -11,28 +11,31 @@ import os
 from globs import images_directory, USAGE_PATH
 from helper import *
 from sqlalchemy import create_engine
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import Session
 from os import path
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.future import select
 import datetime
 from sqlalchemy.orm import sessionmaker
 from db import Usage, base
 
-engine = create_engine("sqlite:///usage.db", echo=True)
-Session = sessionmaker(bind=engine)
+sync_engine = create_engine("sqlite:///usage.db", echo=True)
+SyncSession = sessionmaker(bind=sync_engine)
 
 if not os.path.exists("usage.db"):
-    base.metadata.create_all(engine)
-    session = Session()
+    base.metadata.create_all(sync_engine)
+    session = SyncSession()
     for usage_ident in images_directory.iterdir():
         if usage_ident.is_dir():
             session.add(Usage(usage_ident=usage_ident.name, traffic=0, last_int=datetime.datetime.now()))
     session.commit()
     logger.debug("Database created and populated with initial data")
-
+sync_engine.dispose()
 
 
 app = FastAPI()
+engine = create_async_engine("sqlite+aiosqlite:///usage.db", echo=True)
+async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 # do lifespan=lifespan when ready.
 
 
@@ -59,9 +62,9 @@ async def welcome():
 
 @app.get("/usage")
 async def get_usage():
-    session = Session()
+    session = async_session()
     # load example_usage.json for rn
-    usage = session.query(Usage).all()
+    usage = (await session.execute(select(Usage))).scalars().all()
     usage_data = {}
     for item in usage:
         usage_data[item.usage_ident] = {"traffic": item.traffic, "last_request": item.last_int.isoformat()}
@@ -106,11 +109,11 @@ async def get_random_image(image_type: str):
     random_image = random.choice(images)
 
     # Update Usage
-    session = Session()
-    usage = session.query(Usage).filter_by(usage_ident=image_type).first()
+    session = async_session()
+    usage = (await session.execute(select(Usage).filter_by(usage_ident=image_type))).scalars().first()
     usage.traffic += 1
     usage.last_int = datetime.datetime.now()
-    session.commit()
+    await session.commit()
 
     # use fileResponse with the path to show this.
     return JSONResponse({"fileName": random_image, "url": f"/images/{image_type}/image/{random_image}"})
@@ -162,11 +165,11 @@ async def get_random_image_info(image_type: str):
     # i.e. example neko-api
 
     # Update Usage
-    session = Session()
-    usage = session.query(Usage).filter_by(usage_ident=image_type).first()
+    session = async_session()
+    usage = (await session.execute(select(Usage).filter_by(usage_ident=image_type))).scalars().first()
     usage.traffic += 1
     usage.last_int = datetime.datetime.now()
-    session.commit()
+    await session.commit()
 
     random_image = random.choice(images)
 
